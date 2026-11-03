@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-ceb519e9a5c4d36cb007aa26010c57557b386e32",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.21.2"
+  },
+  "userSourceNameMap": {
+    "contracts/PayProof.sol": "project/contracts/PayProof.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/PayProof.sol": {
+        "content": "\n // SPDX-License-Identifier: MIT\n pragma solidity ^0.8.28;\n\n contract PayProof {\n     address public immutable arbitrator;\n\n     enum Status {\n         PaymentRecorded,\n         Disputed,\n         Refunded,\n         RefundRejected\n     }\n\n     struct Payment {\n         uint256 id;\n         address customer;\n         address merchant;\n         uint256 amount;\n         Status status;\n         bytes32 evidenceHash;\n         string merchantResponse;\n     }\n\n     uint256 public nextPaymentId = 1;\n\n     mapping(uint256 => Payment) public payments;\n\n     event PaymentCreated(\n         uint256 indexed paymentId,\n         address indexed customer,\n         address indexed merchant,\n         uint256 amount\n     );\n\n     event DisputeOpened(\n         uint256 indexed paymentId,\n         bytes32 evidenceHash\n     );\n\n     event MerchantResponded(\n         uint256 indexed paymentId,\n         string response\n     );\n\n     event DisputeResolved(\n         uint256 indexed paymentId,\n         bool refundApproved\n     );\n\n     constructor() {\n         arbitrator = msg.sender;\n     }\n\n     modifier onlyArbitrator() {\n         require(\n             msg.sender == arbitrator,\n             \"Only arbitrator can perform this action\"\n         );\n         _;\n     }\n\n     function createPayment(\n         address merchant,\n         uint256 amount\n     ) external returns (uint256) {\n         require(merchant != address(0), \"Invalid merchant\");\n         require(merchant != msg.sender, \"Customer cannot be merchant\");\n         require(amount > 0, \"Amount must be greater than zero\");\n\n         uint256 paymentId = nextPaymentId++;\n\n         payments[paymentId] = Payment({\n             id: paymentId,\n             customer: msg.sender,\n             merchant: merchant,\n             amount: amount,\n             status: Status.PaymentRecorded,\n             evidenceHash: bytes32(0),\n             merchantResponse: \"\"\n         });\n\n         emit PaymentCreated(\n             paymentId,\n             msg.sender,\n             merchant,\n             amount\n         );\n\n         return paymentId;\n     }\n\n     function openDispute(\n         uint256 paymentId,\n         bytes32 evidenceHash\n     ) external {\n         Payment storage payment = payments[paymentId];\n\n         require(payment.id != 0, \"Payment does not exist\");\n         require(msg.sender == payment.customer, \"Only customer\");\n         require(\n             payment.status == Status.PaymentRecorded,\n             \"Payment cannot be disputed\"\n         );\n         require(\n             evidenceHash != bytes32(0),\n             \"Evidence hash required\"\n         );\n\n         payment.status = Status.Disputed;\n         payment.evidenceHash = evidenceHash;\n\n         emit DisputeOpened(paymentId, evidenceHash);\n     }\n\n     function merchantRespond(\n         uint256 paymentId,\n         string calldata response\n     ) external {\n         Payment storage payment = payments[paymentId];\n\n         require(payment.id != 0, \"Payment does not exist\");\n         require(msg.sender == payment.merchant, \"Only merchant\");\n         require(\n             payment.status == Status.Disputed,\n             \"No active dispute\"\n         );\n         require(bytes(response).length > 0, \"Response required\");\n\n         payment.merchantResponse = response;\n\n         emit MerchantResponded(paymentId, response);\n     }\n\n     function resolveDispute(\n         uint256 paymentId,\n         bool refundApproved\n     ) external onlyArbitrator {\n         Payment storage payment = payments[paymentId];\n\n         require(payment.id != 0, \"Payment does not exist\");\n         require(\n             payment.status == Status.Disputed,\n             \"Payment is not disputed\"\n         );\n\n         if (refundApproved) {\n             payment.status = Status.Refunded;\n         } else {\n             payment.status = Status.RefundRejected;\n         }\n\n         emit DisputeResolved(paymentId, refundApproved);\n     }\n\n     function getPayment(\n         uint256 paymentId\n     ) external view returns (Payment memory) {\n         require(\n             payments[paymentId].id != 0,\n             \"Payment does not exist\"\n         );\n\n         return payments[paymentId];\n     }\n }\n"
+      }
+    }
+  }
+}

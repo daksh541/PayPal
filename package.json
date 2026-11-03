@@ -1,0 +1,26 @@
+{
+  "name": "payproof-workspace",
+  "version": "1.0.0",
+  "description": "PayProof — Blockchain-Based Payment Dispute and Refund Resolution",
+  "scripts": {
+    "blockchain:test": "cd blockchain && npm run test",
+    "blockchain:build": "cd blockchain && npm run build",
+    "blockchain:node": "cd blockchain && npm run node",
+    "blockchain:deploy": "cd blockchain && npm run deploy",
+    "blockchain:seed": "cd blockchain && npm run seed",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "dispute-resolution",
+    "solidity",
+    "hardhat",
+    "react",
+    "viem"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+
