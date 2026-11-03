@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ShieldIcon,
-  DashboardIcon,
   PaymentIcon,
   DisputeIcon,
   TransactionsIcon,
@@ -12,6 +11,9 @@ import {
   XIcon,
   CopyIcon,
   ScaleIcon,
+  ArrowRightIcon,
+  TerminalIcon,
+  BookIcon,
 } from "./components/Icons";
 import {
   fetchContractData,
@@ -37,25 +39,25 @@ const DEMO_ACCOUNTS = [
     role: "Arbitrator",
     label: "Account #0 (Contract Deployer / Arbitrator)",
     address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    desc: "Can approve or reject disputed refunds",
+    desc: "Can approve or reject disputed refunds on-chain",
   },
   {
     role: "Customer",
     label: "Account #1 (Sample Customer / Buyer)",
     address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    desc: "Can create payments and raise disputes with evidence",
+    desc: "Can create payments and raise disputes with IPFS proof",
   },
   {
     role: "Merchant",
     label: "Account #2 (Sample Merchant / Seller)",
     address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    desc: "Receives payments and submits merchant counter-responses",
+    desc: "Receives payments and submits merchant counter-statements",
   },
 ];
 
 export default function App() {
-  // Navigation
-  const [currentTab, setCurrentTab] = useState("dashboard"); // 'dashboard' | 'payment' | 'disputes' | 'transactions' | 'settings'
+  // Navigation: 'story' | 'dashboard' | 'disputes' | 'transactions' | 'settings'
+  const [currentTab, setCurrentTab] = useState("story");
 
   // Blockchain state
   const [wallet, setWallet] = useState("");
@@ -66,10 +68,10 @@ export default function App() {
   const [txPending, setTxPending] = useState(false);
 
   // Notifications / Toast
-  const [toast, setToast] = useState(null); // { type: 'success' | 'error' | 'info', message: string }
+  const [toast, setToast] = useState(null);
 
   // Modals state
-  const [activeModal, setActiveModal] = useState(null); // 'raiseDispute' | 'submitEvidence' | 'merchantRespond' | 'resolveDispute' | null
+  const [activeModal, setActiveModal] = useState(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [modalForm, setModalForm] = useState({
     reason: "",
@@ -107,7 +109,6 @@ export default function App() {
     if (arbitrator && address.toLowerCase() === arbitrator.toLowerCase()) {
       return "Arbitrator";
     }
-    // Check if matches demo accounts
     if (address.toLowerCase() === DEMO_ACCOUNTS[1].address.toLowerCase()) {
       return "Customer";
     }
@@ -373,7 +374,6 @@ export default function App() {
   });
 
   const disputedPaymentsList = payments.filter((p) => p.status === 1);
-
   const isWrongNetwork = wallet && chainId !== null && chainId !== CHAIN_ID;
 
   return (
@@ -382,149 +382,219 @@ export default function App() {
       {toast && (
         <div className="toast-container">
           <div className={`toast toast-${toast.type}`}>
-            {toast.type === "success" && <CheckIcon size={20} />}
-            {toast.type === "error" && <XIcon size={20} />}
-            {toast.type === "info" && <ShieldIcon size={20} />}
-            <span style={{ fontSize: "13px" }}>{toast.message}</span>
+            {toast.type === "success" && <CheckIcon size={18} />}
+            {toast.type === "error" && <XIcon size={18} />}
+            {toast.type === "info" && <ShieldIcon size={18} />}
+            <span>{toast.message}</span>
           </div>
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">
-            <ShieldIcon size={22} />
+      {/* Top Navigation Bar (Agent37 format) */}
+      <header className="agent-navbar">
+        {/* Brand */}
+        <div className="nav-brand" onClick={() => setCurrentTab("story")}>
+          <div className="nav-brand-logo">
+            <ShieldIcon size={16} />
           </div>
-          <div className="brand-text">
-            <h1>PayProof</h1>
-            <span className="brand-badge">Academic Prototype</span>
+          <span className="nav-brand-title">payproof</span>
+          <span className="nav-brand-badge">• ON-CHAIN</span>
+        </div>
+
+        {/* Center Pipeline Status Tracker */}
+        <div className="nav-pipeline">
+          <div className={`pipeline-step ${totalPayments > 0 ? "active" : ""}`}>
+            <span className="pipeline-dot" />
+            <span>RECORDED</span>
+          </div>
+          <div className={`pipeline-step ${activeDisputes > 0 ? "active" : ""}`}>
+            <span className="pipeline-dot" />
+            <span>DISPUTED</span>
+          </div>
+          <div className={`pipeline-step ${disputedPaymentsList.some((p) => p.merchantResponse) ? "active" : ""}`}>
+            <span className="pipeline-dot" />
+            <span>COUNTER-STATEMENT</span>
+          </div>
+          <div className={`pipeline-step ${approvedRefunds + rejectedRefunds > 0 ? "done" : ""}`}>
+            <span className="pipeline-dot" />
+            <span>ARBITRATED</span>
+          </div>
+          <div className="pipeline-step">
+            <span className="pipeline-dot" />
+            <span>SETTLED</span>
           </div>
         </div>
 
-        <nav className="nav-list">
-          <button
-            className={`nav-item ${currentTab === "dashboard" ? "active" : ""}`}
-            onClick={() => setCurrentTab("dashboard")}
-          >
-            <DashboardIcon size={18} />
-            <span>Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${currentTab === "payment" ? "active" : ""}`}
-            onClick={() => setCurrentTab("payment")}
-          >
-            <PaymentIcon size={18} />
-            <span>Create Payment</span>
-          </button>
-
-          <button
-            className={`nav-item ${currentTab === "disputes" ? "active" : ""}`}
-            onClick={() => setCurrentTab("disputes")}
-          >
-            <DisputeIcon size={18} />
-            <span>Disputes ({activeDisputes})</span>
-          </button>
-
-          <button
-            className={`nav-item ${currentTab === "transactions" ? "active" : ""}`}
-            onClick={() => setCurrentTab("transactions")}
-          >
-            <TransactionsIcon size={18} />
-            <span>Transactions ({totalPayments})</span>
-          </button>
-
-          <button
-            className={`nav-item ${currentTab === "settings" ? "active" : ""}`}
-            onClick={() => setCurrentTab("settings")}
-          >
-            <SettingsIcon size={18} />
-            <span>Demo Roles & Setup</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="network-pill">
-            <span className={`status-dot ${isWrongNetwork ? "wrong" : ""}`} />
-            <span>
-              {isWrongNetwork
-                ? `Wrong Network (Chain ${chainId})`
-                : `Hardhat Local (${CHAIN_ID})`}
-            </span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Container */}
-      <div className="main-wrapper">
-        {/* Top Header */}
-        <header className="top-header">
-          <div className="header-title">
-            <h2>Payment Dispute & Refund Resolution</h2>
-            <p>Decentralized arbitration and tamper-resistant transaction audit trail</p>
-          </div>
-
-          <div className="header-actions">
+        {/* Right Nav Actions */}
+        <div className="nav-actions">
+          {/* Segmented Mode Switcher (Story | Terminal Ops) */}
+          <div className="segmented-control">
             <button
-              className="btn-secondary"
-              onClick={loadBlockchainData}
-              title="Refresh blockchain data"
-              disabled={loadingData}
+              className={`segmented-btn ${currentTab === "story" ? "active" : ""}`}
+              onClick={() => setCurrentTab("story")}
             >
-              <RefreshIcon size={16} className={loadingData ? "spin" : ""} />
-              <span>Refresh</span>
+              <BookIcon size={14} />
+              <span>Story</span>
+            </button>
+            <button
+              className={`segmented-btn ${currentTab === "dashboard" ? "active" : ""}`}
+              onClick={() => setCurrentTab("dashboard")}
+            >
+              <TerminalIcon size={14} />
+              <span>Terminal Ops</span>
+            </button>
+            <button
+              className={`segmented-btn ${currentTab === "disputes" ? "active" : ""}`}
+              onClick={() => setCurrentTab("disputes")}
+            >
+              <DisputeIcon size={14} />
+              <span>Disputes ({activeDisputes})</span>
+            </button>
+            <button
+              className={`segmented-btn ${currentTab === "transactions" ? "active" : ""}`}
+              onClick={() => setCurrentTab("transactions")}
+            >
+              <TransactionsIcon size={14} />
+              <span>Ledger</span>
+            </button>
+            <button
+              className={`segmented-btn ${currentTab === "settings" ? "active" : ""}`}
+              onClick={() => setCurrentTab("settings")}
+            >
+              <SettingsIcon size={14} />
+              <span>Roles</span>
+            </button>
+          </div>
+
+          {/* Connected Wallet or Connect Button */}
+          {wallet ? (
+            <div className="wallet-chip">
+              <span
+                className={`role-badge ${
+                  isArbitrator
+                    ? "role-arbitrator"
+                    : currentRole === "Merchant"
+                    ? "role-merchant"
+                    : "role-customer"
+                }`}
+              >
+                <ScaleIcon size={12} />
+                {currentRole}
+              </span>
+
+              <span
+                className="wallet-address"
+                onClick={() => copyToClipboard(wallet, "Wallet address")}
+                title="Click to copy full address"
+              >
+                {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                <CopyIcon size={12} />
+              </span>
+
+              <button
+                className="btn-disconnect"
+                onClick={disconnectWallet}
+                title="Disconnect wallet"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button className="btn-electric" onClick={connectWallet}>
+              <WalletIcon size={15} />
+              <span>Connect Wallet</span>
+              <ArrowRightIcon size={14} />
+            </button>
+          )}
+
+          {/* Quick Trigger Button */}
+          {wallet && (
+            <button
+              className="btn-electric"
+              onClick={() => {
+                setCurrentTab("dashboard");
+                const target = document.getElementById("create-payment-section");
+                if (target) {
+                  target.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+            >
+              <span>Launch Terminal</span>
+              <ArrowRightIcon size={14} />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Hero Section (Matching exact format, colors, and typography from the image) */}
+      <section className="agent-hero">
+        <div className="hero-glow-bottom" />
+
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <span className="hero-eyebrow-dot" />
+            BACKED BY SMART CONTRACTS
+          </div>
+
+          <h1 className="hero-title">
+            Payment disputes on<br />
+            <span className="hero-title-accent">autopilot.</span>
+          </h1>
+
+          <p className="hero-subtitle">
+            Say what went wrong. Submit cryptographic proof. PayProof handles everything
+            in between: escrow logging, merchant rebuttal, and on-chain arbitration.
+            Built for <span className="hero-underline">teams that demand trust.</span>
+          </p>
+
+          <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              className="hero-cta"
+              onClick={() => {
+                setCurrentTab("dashboard");
+                const target = document.getElementById("ops-workspace");
+                if (target) {
+                  target.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+            >
+              <span>Launch Terminal</span>
+              <ArrowRightIcon size={16} />
             </button>
 
-            {wallet ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span
-                  className={`role-badge ${
-                    isArbitrator
-                      ? "role-arbitrator"
-                      : currentRole === "Merchant"
-                      ? "role-merchant"
-                      : "role-customer"
-                  }`}
-                >
-                  <ScaleIcon size={14} />
-                  {currentRole}
-                </span>
-
-                <button
-                  className="btn-secondary"
-                  onClick={() => copyToClipboard(wallet, "Wallet address")}
-                  title="Click to copy full address"
-                >
-                  <WalletIcon size={16} />
-                  <span>
-                    {wallet.slice(0, 6)}...{wallet.slice(-4)}
-                  </span>
-                  <CopyIcon size={14} />
-                </button>
-
-                <button
-                  className="btn-outline-danger"
-                  onClick={disconnectWallet}
-                  title="Disconnect wallet"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <button className="btn-primary" onClick={connectWallet}>
+            {!wallet && (
+              <button className="btn-secondary" onClick={connectWallet} style={{ padding: "12px 24px" }}>
                 <WalletIcon size={16} />
                 <span>Connect MetaMask</span>
               </button>
             )}
-          </div>
-        </header>
 
-        {/* Wrong Network Warning Banner */}
+            <button
+              className="btn-secondary"
+              onClick={loadBlockchainData}
+              disabled={loadingData}
+              style={{ padding: "12px 20px" }}
+              title="Refresh smart contract state"
+            >
+              <RefreshIcon size={15} className={loadingData ? "spin" : ""} />
+              <span>Sync Ledger</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="hero-scroll">
+          <span className="hero-scroll-text">SCROLL</span>
+          <div className="hero-scroll-line" />
+        </div>
+      </section>
+
+      {/* Main Operations Workspace */}
+      <main className="main-workspace" id="ops-workspace">
+        {/* Wrong Network Warning */}
         {isWrongNetwork && (
           <div className="network-warning-banner">
             <div>
-              ⚠️ <strong>Wrong Network Detected:</strong> MetaMask is connected to Chain ID{" "}
+              ⚠️ <strong>Wrong Network Detected:</strong> MetaMask is on Chain ID{" "}
               {chainId}, but PayProof smart contracts are deployed to Hardhat Local (Chain{" "}
               {CHAIN_ID}).
             </div>
@@ -532,289 +602,272 @@ export default function App() {
           </div>
         )}
 
-        {/* Content Body */}
-        <main className="content-area">
-          {/* STATS OVERVIEW CARDS (Visible on Dashboard & Overview) */}
-          {(currentTab === "dashboard" || currentTab === "transactions") && (
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-header">
-                  <span className="stat-title">Total Payments</span>
-                  <div
-                    className="stat-icon"
-                    style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa" }}
-                  >
-                    <PaymentIcon size={18} />
-                  </div>
-                </div>
-                <div className="stat-value">{totalPayments}</div>
-                <div className="stat-sub">
-                  Simulated Volume: ₹{totalVolume.toLocaleString()}
-                </div>
-              </div>
+        {/* Operations Header */}
+        <div className="ops-header">
+          <div className="ops-title-group">
+            <h2>
+              <TerminalIcon size={22} style={{ color: "#388af6" }} />
+              On-Chain Terminal Operations
+            </h2>
+            <p>
+              Decentralized dispute escalation and cryptographic arbitration engine
+            </p>
+          </div>
 
-              <div className="stat-card">
-                <div className="stat-header">
-                  <span className="stat-title">Active Disputes</span>
-                  <div
-                    className="stat-icon"
-                    style={{ background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24" }}
-                  >
-                    <DisputeIcon size={18} />
-                  </div>
-                </div>
-                <div className="stat-value" style={{ color: "#fbbf24" }}>
-                  {activeDisputes}
-                </div>
-                <div className="stat-sub">Awaiting merchant or arbitrator action</div>
-              </div>
+          <div className="network-live-pill">
+            <span className={`live-pulse-dot ${isWrongNetwork ? "warning" : ""}`} />
+            <span>
+              {isWrongNetwork
+                ? `Wrong Chain (${chainId})`
+                : `Hardhat Local #${CHAIN_ID} • ${RPC_URL}`}
+            </span>
+          </div>
+        </div>
 
-              <div className="stat-card">
-                <div className="stat-header">
-                  <span className="stat-title">Refunds Approved</span>
-                  <div
-                    className="stat-icon"
-                    style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399" }}
-                  >
-                    <CheckIcon size={18} />
-                  </div>
-                </div>
-                <div className="stat-value" style={{ color: "#34d399" }}>
-                  {approvedRefunds}
-                </div>
-                <div className="stat-sub">Decided in favor of customer</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-header">
-                  <span className="stat-title">Refunds Rejected</span>
-                  <div
-                    className="stat-icon"
-                    style={{ background: "rgba(239, 68, 68, 0.15)", color: "#f87171" }}
-                  >
-                    <XIcon size={18} />
-                  </div>
-                </div>
-                <div className="stat-value" style={{ color: "#f87171" }}>
-                  {rejectedRefunds}
-                </div>
-                <div className="stat-sub">Decided in favor of merchant</div>
+        {/* 4 Stat Metric Cards (Always visible for live protocol health) */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Total Payments</span>
+              <div className="stat-icon" style={{ background: "rgba(56, 138, 246, 0.15)", color: "#60a5fa" }}>
+                <PaymentIcon size={18} />
               </div>
             </div>
-          )}
+            <div className="stat-value">{totalPayments}</div>
+            <div className="stat-sub">Simulated Volume: ₹{totalVolume.toLocaleString()}</div>
+          </div>
 
-          {/* TAB 1: DASHBOARD VIEW */}
-          {currentTab === "dashboard" && (
-            <div>
-              {/* Quick Actions Panel */}
-              <div className="card-panel">
-                <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">
-                      <ShieldIcon size={18} />
-                      Academic Prototype Workflow
-                    </h3>
-                    <p className="panel-desc">
-                      Simulate end-to-end payment creation, dispute escalation, merchant counter-response, and arbitrator resolution on the local blockchain.
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button
-                      className="btn-primary"
-                      onClick={() => setCurrentTab("payment")}
-                    >
-                      <PaymentIcon size={16} />
-                      New Payment
-                    </button>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setCurrentTab("disputes")}
-                    >
-                      <DisputeIcon size={16} />
-                      Manage Disputes
-                    </button>
-                  </div>
-                </div>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Active Disputes</span>
+              <div className="stat-icon" style={{ background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24" }}>
+                <DisputeIcon size={18} />
+              </div>
+            </div>
+            <div className="stat-value" style={{ color: "#fbbf24" }}>
+              {activeDisputes}
+            </div>
+            <div className="stat-sub">Pending rebuttal or arbitrator decision</div>
+          </div>
 
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Refunds Approved</span>
+              <div className="stat-icon" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
+                <CheckIcon size={18} />
+              </div>
+            </div>
+            <div className="stat-value" style={{ color: "#34d399" }}>
+              {approvedRefunds}
+            </div>
+            <div className="stat-sub">Decided in favor of customer</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Refunds Rejected</span>
+              <div className="stat-icon" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#f87171" }}>
+                <XIcon size={18} />
+              </div>
+            </div>
+            <div className="stat-value" style={{ color: "#f87171" }}>
+              {rejectedRefunds}
+            </div>
+            <div className="stat-sub">Decided in favor of merchant</div>
+          </div>
+        </div>
+
+        {/* Quick Demo Role Switcher & Autofill Bar (Essential for presentation) */}
+        <div className="role-testing-bar">
+          <div className="role-testing-header">
+            <div className="role-testing-title">
+              <ScaleIcon size={16} />
+              <span>Standard Hardhat Test Accounts (Presentation & Role Testing)</span>
+            </div>
+            <span style={{ fontSize: "11px", color: "#64748b" }}>
+              Switch accounts in MetaMask to test role access control
+            </span>
+          </div>
+
+          <div className="role-accounts-grid">
+            {DEMO_ACCOUNTS.map((acc) => {
+              const isCurrent = wallet && wallet.toLowerCase() === acc.address.toLowerCase();
+              return (
                 <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "16px",
-                    marginTop: "16px",
-                  }}
+                  key={acc.role}
+                  className={`role-account-pill ${isCurrent ? "active-wallet" : ""}`}
                 >
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      padding: "16px",
-                      borderRadius: "10px",
-                      border: "1px solid var(--border-subtle)",
-                    }}
-                  >
-                    <h4 style={{ color: "#60a5fa", fontSize: "14px", marginBottom: "6px" }}>
-                      1. Record Payment
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Customer records simulated payment specifying merchant address & amount.
-                    </p>
+                  <div className="role-pill-meta">
+                    <div className="role-pill-name">
+                      <span
+                        className={`role-badge ${
+                          acc.role === "Arbitrator"
+                            ? "role-arbitrator"
+                            : acc.role === "Merchant"
+                            ? "role-merchant"
+                            : "role-customer"
+                        }`}
+                      >
+                        {acc.role}
+                      </span>
+                      {isCurrent && (
+                        <span style={{ fontSize: "10px", color: "#10b981", fontWeight: 700 }}>
+                          ● ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <span className="role-pill-addr">{acc.address}</span>
                   </div>
 
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      padding: "16px",
-                      borderRadius: "10px",
-                      border: "1px solid var(--border-subtle)",
-                    }}
-                  >
-                    <h4 style={{ color: "#fbbf24", fontSize: "14px", marginBottom: "6px" }}>
-                      2. Customer Dispute
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      If item is missing or fraudulent, customer raises dispute with reason & IPFS evidence hash.
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      padding: "16px",
-                      borderRadius: "10px",
-                      border: "1px solid var(--border-subtle)",
-                    }}
-                  >
-                    <h4 style={{ color: "#c084fc", fontSize: "14px", marginBottom: "6px" }}>
-                      3. Merchant Response
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Designated merchant submits counter-proof or delivery receipt.
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      padding: "16px",
-                      borderRadius: "10px",
-                      border: "1px solid var(--border-subtle)",
-                    }}
-                  >
-                    <h4 style={{ color: "#34d399", fontSize: "14px", marginBottom: "6px" }}>
-                      4. Arbitrator Ruling
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Independent arbitrator evaluates proof and signs immutable approval or rejection.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Disputes Section Preview */}
-              <div className="card-panel">
-                <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">
-                      <DisputeIcon size={18} />
-                      Active Disputes Requiring Attention
-                    </h3>
-                    <p className="panel-desc">
-                      Transactions currently under active dispute on the blockchain.
-                    </p>
-                  </div>
-                  {activeDisputes > 0 && (
+                  <div className="role-pill-actions">
                     <button
-                      className="btn-secondary"
-                      onClick={() => setCurrentTab("disputes")}
+                      className="preset-chip"
+                      onClick={() => copyToClipboard(acc.address, `${acc.role} address`)}
+                      title="Copy Address"
                     >
-                      View All Disputes
+                      Copy
                     </button>
-                  )}
+                    {acc.role === "Merchant" && (
+                      <button
+                        className="preset-chip"
+                        style={{ color: "#388af6", borderColor: "rgba(56, 138, 246, 0.4)" }}
+                        onClick={() => {
+                          setMerchantInput(acc.address);
+                          showToast("info", "Merchant address auto-filled in Payment form!");
+                        }}
+                        title="Use as Merchant in Payment Form"
+                      >
+                        Use
+                      </button>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
 
-                {disputedPaymentsList.length === 0 ? (
-                  <div className="empty-state">
-                    <ShieldIcon size={40} className="empty-icon" />
-                    <p style={{ fontWeight: 600 }}>No active disputes found.</p>
-                    <p style={{ fontSize: "12px", marginTop: "4px" }}>
-                      All recorded transactions are either undisputably settled or already resolved.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="disputes-grid">
-                    {disputedPaymentsList.slice(0, 4).map((payment) => (
-                      <DisputeCard
-                        key={payment.id}
-                        payment={payment}
-                        wallet={wallet}
-                        isArbitrator={isArbitrator}
-                        onAction={openActionModal}
-                        onCopy={copyToClipboard}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Transactions Preview */}
-              <div className="card-panel">
-                <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">
-                      <TransactionsIcon size={18} />
-                      Recent Blockchain Payments
-                    </h3>
-                    <p className="panel-desc">
-                      Latest payments recorded in the PayProof smart contract.
-                    </p>
-                  </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setCurrentTab("transactions")}
-                  >
-                    Full History
-                  </button>
-                </div>
-
-                {payments.length === 0 ? (
-                  <div className="empty-state">
-                    <PaymentIcon size={40} className="empty-icon" />
-                    <p style={{ fontWeight: 600 }}>No payment records yet.</p>
-                    <p style={{ fontSize: "12px", marginTop: "4px" }}>
-                      Click "New Payment" to simulate a blockchain transaction record.
-                    </p>
-                  </div>
-                ) : (
-                  <TransactionsTable
-                    payments={payments.slice(-5).reverse()}
-                    wallet={wallet}
-                    isArbitrator={isArbitrator}
-                    onAction={openActionModal}
-                    onCopy={copyToClipboard}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: CREATE PAYMENT */}
-          {currentTab === "payment" && (
-            <div className="card-panel" style={{ maxWidth: "680px", margin: "0 auto" }}>
+        {/* TAB 1: STORY VIEW (Detailed Protocol Walkthrough) */}
+        {currentTab === "story" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="card-panel">
               <div className="panel-header">
                 <div>
                   <h3 className="panel-title">
-                    <PaymentIcon size={18} />
-                    Record Simulated Payment
+                    <BookIcon size={18} style={{ color: "#388af6" }} />
+                    How PayProof Works Under the Hood
                   </h3>
                   <p className="panel-desc">
-                    Generates an immutable simulated payment entry on the local blockchain ledger.
+                    A decentralized arbitration and tamper-resistant transaction audit trail built on Ethereum smart contracts.
+                  </p>
+                </div>
+                <button
+                  className="btn-electric"
+                  onClick={() => setCurrentTab("dashboard")}
+                >
+                  <span>Open Terminal Ops</span>
+                  <ArrowRightIcon size={14} />
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "16px",
+                  marginTop: "8px",
+                }}
+              >
+                <div className="dispute-box" style={{ padding: "16px" }}>
+                  <div className="dispute-box-title" style={{ color: "#388af6" }}>
+                    Stage 01 • Payment Logging
+                  </div>
+                  <p style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "6px", lineHeight: "1.5" }}>
+                    Customer initiates a simulated payment to a verified merchant address. The transaction is permanently hashed on-chain with block timestamps.
+                  </p>
+                </div>
+
+                <div className="dispute-box" style={{ padding: "16px" }}>
+                  <div className="dispute-box-title" style={{ color: "#fbbf24" }}>
+                    Stage 02 • Dispute Escalation
+                  </div>
+                  <p style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "6px", lineHeight: "1.5" }}>
+                    If a dispute arises (damaged goods, delivery failure), the customer submits a dispute reason and cryptographic IPFS proof hash.
+                  </p>
+                </div>
+
+                <div className="dispute-box" style={{ padding: "16px" }}>
+                  <div className="dispute-box-title" style={{ color: "#c084fc" }}>
+                    Stage 03 • Merchant Counter-Rebuttal
+                  </div>
+                  <p style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "6px", lineHeight: "1.5" }}>
+                    Only the designated merchant account can submit a counter-statement or carrier fulfillment tracking ID to defend their position.
+                  </p>
+                </div>
+
+                <div className="dispute-box" style={{ padding: "16px" }}>
+                  <div className="dispute-box-title" style={{ color: "#34d399" }}>
+                    Stage 04 • On-Chain Ruling
+                  </div>
+                  <p style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "6px", lineHeight: "1.5" }}>
+                    The authorized neutral arbitrator reviews the immutable trail and issues a final, non-repudiable Approve or Reject ruling.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Demo Launchpad */}
+            <div className="card-panel" style={{ background: "rgba(56, 138, 246, 0.04)", borderColor: "rgba(56, 138, 246, 0.2)" }}>
+              <div className="panel-header">
+                <div>
+                  <h4 style={{ color: "#ffffff", fontSize: "15px", fontWeight: 700 }}>
+                    ⚡ Ready to test the simulated workflow?
+                  </h4>
+                  <p style={{ color: "#94a3b8", fontSize: "13px" }}>
+                    Create a payment, raise an on-chain dispute, and resolve it with MetaMask.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button className="btn-electric" onClick={() => setCurrentTab("dashboard")}>
+                    <TerminalIcon size={14} />
+                    <span>Launch Terminal Ops</span>
+                  </button>
+                  <button className="btn-secondary" onClick={() => setCurrentTab("disputes")}>
+                    <DisputeIcon size={14} />
+                    <span>View Disputes ({activeDisputes})</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: TERMINAL OPS / DASHBOARD */}
+        {currentTab === "dashboard" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+              gap: "24px",
+            }}
+          >
+            {/* Left: Create Payment Console */}
+            <div className="card-panel" id="create-payment-section">
+              <div className="panel-header">
+                <div>
+                  <h3 className="panel-title">
+                    <PaymentIcon size={18} style={{ color: "#388af6" }} />
+                    Simulate Payment
+                  </h3>
+                  <p className="panel-desc">
+                    Broadcast a simulated on-chain payment from connected customer wallet
                   </p>
                 </div>
               </div>
 
               <form onSubmit={handleCreatePayment}>
                 <div className="form-group">
-                  <label className="form-label">Recipient Merchant Wallet Address</label>
+                  <label className="form-label">Merchant Ethereum Address</label>
                   <input
                     type="text"
                     placeholder="0x..."
@@ -823,380 +876,413 @@ export default function App() {
                     required
                   />
                   <div className="presets-row">
-                    <span style={{ fontSize: "11px", color: "var(--text-dim)", alignSelf: "center" }}>
-                      Quick Test Merchants:
-                    </span>
+                    <span className="form-hint">Quick autofill:</span>
                     <button
                       type="button"
                       className="preset-chip"
                       onClick={() => setMerchantInput(DEMO_ACCOUNTS[2].address)}
                     >
-                      Demo Merchant (Account #2)
+                      Sample Merchant (Acc #2)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Payment Amount (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 1500"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                    min="1"
+                    required
+                  />
+                  <div className="presets-row">
+                    <span className="form-hint">Presets:</span>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() => setAmountInput("500")}
+                    >
+                      ₹500
                     </button>
                     <button
                       type="button"
                       className="preset-chip"
-                      onClick={() => setMerchantInput("0x90F79bf6EB2c4f870365E785982E1f101E93b906")}
+                      onClick={() => setAmountInput("1500")}
                     >
-                      Merchant B (Account #3)
+                      ₹1,500
+                    </button>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() => setAmountInput("5000")}
+                    >
+                      ₹5,000
                     </button>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Payment Amount (Simulated ₹ / Tokens)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 2500"
-                    value={amountInput}
-                    onChange={(e) => setAmountInput(e.target.value)}
-                    required
-                  />
-                  <div className="presets-row">
-                    <span style={{ fontSize: "11px", color: "var(--text-dim)", alignSelf: "center" }}>
-                      Presets:
-                    </span>
-                    {["500", "1500", "3000", "7500"].map((val) => (
-                      <button
-                        key={val}
-                        type="button"
-                        className="preset-chip"
-                        onClick={() => setAmountInput(val)}
-                      >
-                        ₹{val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Payment Note / Order Reference (Optional)</label>
+                  <label className="form-label">Order Memo / Item Note (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Invoice #INV-2026-904, Order for Electronics"
+                    placeholder="e.g. Hardware Sensor Kit #372"
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
                   />
                 </div>
 
-                <div
-                  style={{
-                    background: "rgba(59, 130, 246, 0.08)",
-                    border: "1px solid rgba(59, 130, 246, 0.2)",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    fontSize: "12px",
-                    color: "#93c5fd",
-                    marginBottom: "20px",
-                  }}
-                >
-                  ℹ️ <strong>Academic Prototype Note:</strong> No real currency is charged. The
-                  transaction will invoke <code>PayProof.createPayment()</code> on Hardhat Local and
-                  lock the record with status <code>PaymentRecorded</code>.
-                </div>
-
                 <button
                   type="submit"
-                  className="btn-primary"
-                  style={{ width: "100%", justifyContent: "center", padding: "12px" }}
-                  disabled={txPending || !wallet}
+                  className="btn-electric"
+                  style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: "8px" }}
+                  disabled={txPending}
                 >
                   {txPending ? (
-                    <span>Broadcasting to Blockchain...</span>
-                  ) : !wallet ? (
-                    <span>Connect Wallet to Record Payment</span>
+                    "Confirming On-Chain..."
                   ) : (
-                    <span>Create Blockchain Payment Record</span>
+                    <>
+                      <span>Record Payment On-Chain</span>
+                      <ArrowRightIcon size={14} />
+                    </>
                   )}
                 </button>
               </form>
             </div>
-          )}
 
-          {/* TAB 3: DISPUTE MANAGEMENT */}
-          {currentTab === "disputes" && (
-            <div>
-              <div className="card-panel">
-                <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">
-                      <DisputeIcon size={18} />
-                      Payment Dispute Management Center
-                    </h3>
-                    <p className="panel-desc">
-                      Manage active disputes, inspect evidence hashes, provide merchant statements, and execute arbitrator rulings.
-                    </p>
-                  </div>
-                </div>
-
-                {payments.length === 0 ? (
-                  <div className="empty-state">
-                    <DisputeIcon size={40} className="empty-icon" />
-                    <p style={{ fontWeight: 600 }}>No payments exist yet to dispute.</p>
-                    <p style={{ fontSize: "12px", marginTop: "4px" }}>
-                      Create a payment first to test the dispute escalation workflow.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="disputes-grid">
-                    {payments
-                      .filter((p) => p.status !== 0) // Disputed, Refunded, or RefundRejected
-                      .map((payment) => (
-                        <DisputeCard
-                          key={payment.id}
-                          payment={payment}
-                          wallet={wallet}
-                          isArbitrator={isArbitrator}
-                          onAction={openActionModal}
-                          onCopy={copyToClipboard}
-                        />
-                      ))}
-
-                    {/* Also display recorded payments eligible for raising a dispute */}
-                    {payments
-                      .filter((p) => p.status === 0)
-                      .map((payment) => (
-                        <DisputeCard
-                          key={payment.id}
-                          payment={payment}
-                          wallet={wallet}
-                          isArbitrator={isArbitrator}
-                          onAction={openActionModal}
-                          onCopy={copyToClipboard}
-                        />
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: TRANSACTIONS HISTORY */}
-          {currentTab === "transactions" && (
+            {/* Right: Live Dispute Stream */}
             <div className="card-panel">
               <div className="panel-header">
                 <div>
                   <h3 className="panel-title">
-                    <TransactionsIcon size={18} />
-                    On-Chain Transaction Audit Trail
+                    <DisputeIcon size={18} style={{ color: "#fbbf24" }} />
+                    Active Disputes Feed ({activeDisputes})
                   </h3>
                   <p className="panel-desc">
-                    Tamper-resistant records directly fetched from the PayProof smart contract.
+                    Disputes requiring customer evidence, merchant counter-response, or arbitrator ruling
                   </p>
                 </div>
-
-                {/* Filter Tabs */}
-                <div style={{ display: "flex", gap: "6px" }}>
-                  {[
-                    { id: "all", label: "All Records" },
-                    { id: "recorded", label: "Recorded" },
-                    { id: "disputed", label: "Disputed" },
-                    { id: "refunded", label: "Refunded" },
-                    { id: "rejected", label: "Rejected" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      className="preset-chip"
-                      style={{
-                        background:
-                          txFilter === tab.id ? "rgba(59, 130, 246, 0.25)" : undefined,
-                        borderColor:
-                          txFilter === tab.id ? "rgba(59, 130, 246, 0.5)" : undefined,
-                        color: txFilter === tab.id ? "#60a5fa" : undefined,
-                      }}
-                      onClick={() => setTxFilter(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  className="preset-chip"
+                  onClick={() => setCurrentTab("disputes")}
+                >
+                  View All
+                </button>
               </div>
 
-              {filteredPayments.length === 0 ? (
-                <div className="empty-state">
-                  <TransactionsIcon size={40} className="empty-icon" />
-                  <p style={{ fontWeight: 600 }}>No transactions match this filter.</p>
-                </div>
-              ) : (
-                <TransactionsTable
-                  payments={filteredPayments}
-                  wallet={wallet}
-                  isArbitrator={isArbitrator}
-                  onAction={openActionModal}
-                  onCopy={copyToClipboard}
-                />
-              )}
-            </div>
-          )}
-
-          {/* TAB 5: DEMO ROLES & SETTINGS */}
-          {currentTab === "settings" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              <div className="card-panel">
-                <h3 className="panel-title" style={{ marginBottom: "12px" }}>
-                  <SettingsIcon size={18} />
-                  Contract & Network Configuration
-                </h3>
+              {disputedPaymentsList.length === 0 ? (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: "16px",
+                    padding: "40px 20px",
+                    textAlign: "center",
+                    color: "var(--text-dim)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "10px",
                   }}
                 >
-                  <div className="dispute-box">
-                    <div className="dispute-box-title">PayProof Contract Address</div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        fontFamily: "monospace",
-                        color: "#60a5fa",
-                      }}
-                    >
-                      <span>{PAYPROOF_ADDRESS}</span>
-                      <button
-                        className="preset-chip"
-                        onClick={() => copyToClipboard(PAYPROOF_ADDRESS, "Contract address")}
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="dispute-box">
-                    <div className="dispute-box-title">Authorized Arbitrator Address</div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        fontFamily: "monospace",
-                        color: "#c084fc",
-                      }}
-                    >
-                      <span>{arbitrator}</span>
-                      <button
-                        className="preset-chip"
-                        onClick={() => copyToClipboard(arbitrator, "Arbitrator address")}
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="dispute-box">
-                    <div className="dispute-box-title">Network & Chain ID</div>
-                    <div style={{ color: "var(--text-main)", fontWeight: 600 }}>
-                      Hardhat Local Network (Chain ID: {CHAIN_ID}) — {RPC_URL}
-                    </div>
-                  </div>
+                  <ShieldIcon size={32} style={{ color: "rgba(255,255,255,0.15)" }} />
+                  <p style={{ fontSize: "14px" }}>No active disputes currently open.</p>
+                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    Payments can be disputed by the customer from the Ledger tab.
+                  </span>
                 </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {disputedPaymentsList.slice(0, 3).map((p) => (
+                    <DisputeCard
+                      key={p.id}
+                      payment={p}
+                      wallet={wallet}
+                      isArbitrator={isArbitrator}
+                      onAction={openActionModal}
+                      onCopy={copyToClipboard}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: FULL DISPUTES VIEW */}
+        {currentTab === "disputes" && (
+          <div className="card-panel">
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">
+                  <DisputeIcon size={20} style={{ color: "#fbbf24" }} />
+                  Dispute Arbitration Center
+                </h3>
+                <p className="panel-desc">
+                  Live on-chain dispute records with cryptographic IPFS evidence hashes and merchant rebuttals
+                </p>
+              </div>
+            </div>
+
+            {disputedPaymentsList.length === 0 ? (
+              <div
+                style={{
+                  padding: "60px 20px",
+                  textAlign: "center",
+                  color: "var(--text-dim)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <ShieldIcon size={40} style={{ color: "rgba(255,255,255,0.15)" }} />
+                <h4 style={{ color: "#ffffff", fontSize: "16px" }}>No Open Disputes</h4>
+                <p style={{ fontSize: "13px", maxWidth: "400px", color: "#64748b" }}>
+                  All recorded payments are currently in good standing. To test dispute resolution, go to Ledger and raise a dispute on any recorded payment.
+                </p>
+                <button
+                  className="btn-electric"
+                  onClick={() => setCurrentTab("transactions")}
+                  style={{ marginTop: "10px" }}
+                >
+                  <span>Go to Ledger</span>
+                  <ArrowRightIcon size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="dispute-grid">
+                {disputedPaymentsList.map((p) => (
+                  <DisputeCard
+                    key={p.id}
+                    payment={p}
+                    wallet={wallet}
+                    isArbitrator={isArbitrator}
+                    onAction={openActionModal}
+                    onCopy={copyToClipboard}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: AUDIT TRAIL & TRANSACTIONS */}
+        {currentTab === "transactions" && (
+          <div className="card-panel">
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">
+                  <TransactionsIcon size={20} style={{ color: "#388af6" }} />
+                  On-Chain Payment Ledger & Audit Trail
+                </h3>
+                <p className="panel-desc">
+                  Immutable transaction history queryable directly from the smart contract state
+                </p>
               </div>
 
-              {/* Demo Accounts Switcher Guide */}
-              <div className="card-panel">
-                <h3 className="panel-title" style={{ marginBottom: "8px" }}>
-                  <ScaleIcon size={18} />
-                  Role Demonstration Guide (MetaMask Testing)
-                </h3>
-                <p className="panel-desc" style={{ marginBottom: "20px" }}>
-                  For university project evaluation and live demonstration, switch between these 3 standard Hardhat test accounts in MetaMask:
-                </p>
+              {/* Filter Pills */}
+              <div className="segmented-control">
+                <button
+                  className={`segmented-btn ${txFilter === "all" ? "active" : ""}`}
+                  onClick={() => setTxFilter("all")}
+                >
+                  All ({payments.length})
+                </button>
+                <button
+                  className={`segmented-btn ${txFilter === "recorded" ? "active" : ""}`}
+                  onClick={() => setTxFilter("recorded")}
+                >
+                  Recorded ({payments.filter((p) => p.status === 0).length})
+                </button>
+                <button
+                  className={`segmented-btn ${txFilter === "disputed" ? "active" : ""}`}
+                  onClick={() => setTxFilter("disputed")}
+                >
+                  Disputed ({activeDisputes})
+                </button>
+                <button
+                  className={`segmented-btn ${txFilter === "refunded" ? "active" : ""}`}
+                  onClick={() => setTxFilter("refunded")}
+                >
+                  Refunded ({approvedRefunds})
+                </button>
+                <button
+                  className={`segmented-btn ${txFilter === "rejected" ? "active" : ""}`}
+                  onClick={() => setTxFilter("rejected")}
+                >
+                  Rejected ({rejectedRefunds})
+                </button>
+              </div>
+            </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  {DEMO_ACCOUNTS.map((acc) => {
-                    const isCurrent =
-                      wallet && wallet.toLowerCase() === acc.address.toLowerCase();
-                    return (
-                      <div
-                        key={acc.role}
-                        style={{
-                          background: isCurrent
-                            ? "rgba(59, 130, 246, 0.12)"
-                            : "var(--bg-secondary)",
-                          border: `1px solid ${
-                            isCurrent ? "rgba(59, 130, 246, 0.4)" : "var(--border-subtle)"
-                          }`,
-                          borderRadius: "12px",
-                          padding: "16px 20px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          flexWrap: "wrap",
-                          gap: "12px",
-                        }}
-                      >
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span
-                              className={`role-badge ${
-                                acc.role === "Arbitrator"
-                                  ? "role-arbitrator"
-                                  : acc.role === "Merchant"
-                                  ? "role-merchant"
-                                  : "role-customer"
-                              }`}
-                            >
-                              {acc.role}
-                            </span>
-                            <span style={{ fontWeight: 600, fontSize: "14px" }}>
-                              {acc.label}
-                            </span>
-                            {isCurrent && (
-                              <span
-                                style={{
-                                  fontSize: "11px",
-                                  background: "#10b981",
-                                  color: "white",
-                                  padding: "2px 8px",
-                                  borderRadius: "10px",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                Active Wallet
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "monospace",
-                              fontSize: "12px",
-                              color: "var(--text-dim)",
-                              marginTop: "6px",
-                            }}
-                          >
-                            {acc.address}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "var(--text-muted)",
-                              marginTop: "4px",
-                            }}
-                          >
-                            {acc.desc}
-                          </div>
-                        </div>
+            {filteredPayments.length === 0 ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                No payments match the selected filter.
+              </div>
+            ) : (
+              <TransactionsTable
+                payments={filteredPayments}
+                wallet={wallet}
+                isArbitrator={isArbitrator}
+                onAction={openActionModal}
+                onCopy={copyToClipboard}
+              />
+            )}
+          </div>
+        )}
 
-                        <button
-                          className="btn-secondary"
-                          onClick={() => copyToClipboard(acc.address, `${acc.role} address`)}
-                        >
-                          <CopyIcon size={14} />
-                          <span>Copy Address</span>
-                        </button>
-                      </div>
-                    );
-                  })}
+        {/* TAB 5: DEMO ROLES & SETTINGS */}
+        {currentTab === "settings" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="card-panel">
+              <h3 className="panel-title" style={{ marginBottom: "12px" }}>
+                <SettingsIcon size={18} />
+                Contract & Network Configuration
+              </h3>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                <div className="dispute-box">
+                  <div className="dispute-box-title">PayProof Contract Address</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontFamily: "var(--font-mono)",
+                      color: "#388af6",
+                    }}
+                  >
+                    <span>{PAYPROOF_ADDRESS}</span>
+                    <button
+                      className="preset-chip"
+                      onClick={() => copyToClipboard(PAYPROOF_ADDRESS, "Contract address")}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <div className="dispute-box">
+                  <div className="dispute-box-title">Authorized Arbitrator Address</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontFamily: "var(--font-mono)",
+                      color: "#c084fc",
+                    }}
+                  >
+                    <span>{arbitrator}</span>
+                    <button
+                      className="preset-chip"
+                      onClick={() => copyToClipboard(arbitrator, "Arbitrator address")}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <div className="dispute-box">
+                  <div className="dispute-box-title">Network & Chain ID</div>
+                  <div style={{ color: "var(--text-main)", fontWeight: 600 }}>
+                    Hardhat Local Network (Chain ID: {CHAIN_ID}) — {RPC_URL}
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-        </main>
-      </div>
+
+            {/* Role Demonstration Guide */}
+            <div className="card-panel">
+              <h3 className="panel-title" style={{ marginBottom: "8px" }}>
+                <ScaleIcon size={18} />
+                MetaMask Role-Testing Walkthrough
+              </h3>
+              <p className="panel-desc" style={{ marginBottom: "20px" }}>
+                For project evaluation and viva defense, switch between these standard Hardhat test accounts in MetaMask to demonstrate role-based access control:
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {DEMO_ACCOUNTS.map((acc) => {
+                  const isCurrent =
+                    wallet && wallet.toLowerCase() === acc.address.toLowerCase();
+                  return (
+                    <div
+                      key={acc.role}
+                      className="role-account-pill"
+                      style={{ padding: "16px 20px" }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <span
+                            className={`role-badge ${
+                              acc.role === "Arbitrator"
+                                ? "role-arbitrator"
+                                : acc.role === "Merchant"
+                                ? "role-merchant"
+                                : "role-customer"
+                            }`}
+                          >
+                            {acc.role}
+                          </span>
+                          <span style={{ fontWeight: 600, fontSize: "14px" }}>
+                            {acc.label}
+                          </span>
+                          {isCurrent && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                background: "#10b981",
+                                color: "white",
+                                padding: "2px 8px",
+                                borderRadius: "10px",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Active Wallet
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "12px",
+                            color: "var(--text-dim)",
+                            marginTop: "6px",
+                          }}
+                        >
+                          {acc.address}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--text-muted)",
+                            marginTop: "4px",
+                          }}
+                        >
+                          {acc.desc}
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn-secondary"
+                        onClick={() => copyToClipboard(acc.address, `${acc.role} address`)}
+                      >
+                        <CopyIcon size={14} />
+                        <span>Copy Address</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* POPUP ACTION MODAL */}
       {activeModal && selectedPayment && (
@@ -1219,8 +1305,13 @@ export default function App() {
 
             <div style={{ marginBottom: "16px", fontSize: "13px", color: "var(--text-muted)" }}>
               Payment Amount: <strong>₹{selectedPayment.amount}</strong> | Customer:{" "}
-              <code>{selectedPayment.customer.slice(0, 6)}...</code> | Merchant:{" "}
-              <code>{selectedPayment.merchant.slice(0, 6)}...</code>
+              <code style={{ fontFamily: "var(--font-mono)", color: "#388af6" }}>
+                {selectedPayment.customer.slice(0, 6)}...
+              </code>{" "}
+              | Merchant:{" "}
+              <code style={{ fontFamily: "var(--font-mono)", color: "#fbbf24" }}>
+                {selectedPayment.merchant.slice(0, 6)}...
+              </code>
             </div>
 
             {/* Modal Body Based On Action */}
@@ -1230,7 +1321,7 @@ export default function App() {
                   <label className="form-label">Dispute Reason (Required)</label>
                   <textarea
                     rows="3"
-                    placeholder="Describe the issue (e.g. Item never delivered, damaged goods, incorrect billing)..."
+                    placeholder="Describe the issue (e.g. Item never delivered, defective goods, unauthorized charge)..."
                     value={modalForm.reason}
                     onChange={(e) =>
                       setModalForm({ ...modalForm, reason: e.target.value })
@@ -1241,7 +1332,7 @@ export default function App() {
                   <label className="form-label">Evidence Identifier / IPFS Hash</label>
                   <input
                     type="text"
-                    placeholder="e.g. ipfs://QmProofHash9876543210 or transaction receipt ID"
+                    placeholder="e.g. ipfs://QmProofHash9876543210 or invoice hash"
                     value={modalForm.evidenceHash}
                     onChange={(e) =>
                       setModalForm({ ...modalForm, evidenceHash: e.target.value })
@@ -1378,7 +1469,7 @@ export default function App() {
                 Cancel
               </button>
               <button
-                className="btn-primary"
+                className="btn-electric"
                 onClick={submitModalAction}
                 disabled={txPending}
               >
@@ -1452,9 +1543,9 @@ function DisputeCard({ payment, wallet, isArbitrator, onAction, onCopy }) {
           <div className="dispute-box-title">Evidence Hash / IPFS</div>
           <div
             style={{
-              color: "#60a5fa",
+              color: "#388af6",
               fontSize: "12px",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               wordBreak: "break-all",
               cursor: "pointer",
             }}
@@ -1467,8 +1558,8 @@ function DisputeCard({ payment, wallet, isArbitrator, onAction, onCopy }) {
       )}
 
       {payment.merchantResponse && (
-        <div className="dispute-box" style={{ borderColor: "rgba(59, 130, 246, 0.3)" }}>
-          <div className="dispute-box-title" style={{ color: "#60a5fa" }}>
+        <div className="dispute-box" style={{ borderColor: "rgba(56, 138, 246, 0.3)" }}>
+          <div className="dispute-box-title" style={{ color: "#388af6" }}>
             Merchant Statement
           </div>
           <div style={{ color: "var(--text-main)", fontSize: "13px" }}>
@@ -1479,11 +1570,10 @@ function DisputeCard({ payment, wallet, isArbitrator, onAction, onCopy }) {
 
       {/* Role-Specific Actions */}
       <div className="dispute-actions">
-        {/* Raise Dispute (Customer & status == 0) */}
         {payment.status === 0 && (
           <button
-            className="btn-primary"
-            style={{ fontSize: "12px", padding: "6px 12px" }}
+            className="btn-electric"
+            style={{ fontSize: "12px", padding: "6px 14px" }}
             onClick={() => onAction("raiseDispute", payment)}
             disabled={!isCustomer && wallet !== ""}
             title={!isCustomer ? "Only the customer who created this payment can dispute" : ""}
@@ -1492,36 +1582,34 @@ function DisputeCard({ payment, wallet, isArbitrator, onAction, onCopy }) {
           </button>
         )}
 
-        {/* Submit Additional Evidence (Customer & status == 1) */}
         {payment.status === 1 && isCustomer && (
           <button
             className="btn-secondary"
-            style={{ fontSize: "12px", padding: "6px 12px" }}
+            style={{ fontSize: "12px", padding: "6px 14px" }}
             onClick={() => onAction("submitEvidence", payment)}
           >
             Update Evidence
           </button>
         )}
 
-        {/* Merchant Response (Merchant & status == 1) */}
         {payment.status === 1 && isMerchant && (
           <button
             className="btn-secondary"
-            style={{ fontSize: "12px", padding: "6px 12px", borderColor: "#60a5fa" }}
+            style={{ fontSize: "12px", padding: "6px 14px", borderColor: "#388af6" }}
             onClick={() => onAction("merchantRespond", payment)}
           >
             Submit Response
           </button>
         )}
 
-        {/* Arbitrator Resolution (Arbitrator & status == 1) */}
         {payment.status === 1 && isArbitrator && (
           <button
-            className="btn-primary"
+            className="btn-electric"
             style={{
               fontSize: "12px",
-              padding: "6px 12px",
+              padding: "6px 14px",
               background: "linear-gradient(135deg, #7c3aed, #9333ea)",
+              boxShadow: "0 0 16px rgba(147, 51, 234, 0.4)",
             }}
             onClick={() => onAction("resolveDispute", payment)}
           >
@@ -1562,10 +1650,12 @@ function TransactionsTable({ payments, wallet, isArbitrator, onAction, onCopy })
 
             return (
               <tr key={p.id}>
-                <td style={{ fontWeight: 700, color: "#60a5fa" }}>#{p.id}</td>
+                <td style={{ fontWeight: 700, color: "#388af6", fontFamily: "var(--font-mono)" }}>
+                  #{p.id}
+                </td>
                 <td>
                   <span
-                    style={{ fontFamily: "monospace", cursor: "pointer" }}
+                    style={{ fontFamily: "var(--font-mono)", cursor: "pointer" }}
                     onClick={() => onCopy(p.customer, "Customer address")}
                   >
                     {p.customer.slice(0, 6)}...{p.customer.slice(-4)}
@@ -1573,13 +1663,13 @@ function TransactionsTable({ payments, wallet, isArbitrator, onAction, onCopy })
                 </td>
                 <td>
                   <span
-                    style={{ fontFamily: "monospace", cursor: "pointer" }}
+                    style={{ fontFamily: "var(--font-mono)", cursor: "pointer" }}
                     onClick={() => onCopy(p.merchant, "Merchant address")}
                   >
                     {p.merchant.slice(0, 6)}...{p.merchant.slice(-4)}
                   </span>
                 </td>
-                <td style={{ fontWeight: 600, color: "var(--text-main)" }}>
+                <td style={{ fontWeight: 700, color: "#ffffff" }}>
                   ₹{Number(p.amount).toLocaleString()}
                 </td>
                 <td>
@@ -1587,7 +1677,7 @@ function TransactionsTable({ payments, wallet, isArbitrator, onAction, onCopy })
                     className="status-badge"
                     style={{
                       background: p.statusMeta.bg,
-                      color: p.statusMeta.color,
+                      color: paymentStatusTextColor(p.status),
                       border: `1px solid ${p.statusMeta.border}`,
                     }}
                   >
@@ -1641,4 +1731,19 @@ function TransactionsTable({ payments, wallet, isArbitrator, onAction, onCopy })
       </table>
     </div>
   );
+}
+
+function paymentStatusTextColor(status) {
+  switch (status) {
+    case 0:
+      return "#60a5fa";
+    case 1:
+      return "#fbbf24";
+    case 2:
+      return "#34d399";
+    case 3:
+      return "#f87171";
+    default:
+      return "#cbd5e1";
+  }
 }
