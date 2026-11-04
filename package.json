@@ -8,6 +8,7 @@
     "blockchain:node": "cd blockchain && npm run node",
     "blockchain:deploy": "cd blockchain && npm run deploy",
     "blockchain:seed": "cd blockchain && npm run seed",
+    "test:e2e": "cd blockchain && npm run test:e2e",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build"
   },

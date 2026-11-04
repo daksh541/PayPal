@@ -6,8 +6,9 @@
     "build": "HARDHAT_DISABLE_TELEMETRY=true hardhat build",
     "test": "HARDHAT_DISABLE_TELEMETRY=true hardhat test test/PayProof.test.ts",
     "node": "HARDHAT_DISABLE_TELEMETRY=true hardhat node",
-    "deploy": "HARDHAT_DISABLE_TELEMETRY=true hardhat run scripts/deploy.ts",
-    "seed": "HARDHAT_DISABLE_TELEMETRY=true hardhat run scripts/seed.ts"
+    "deploy": "node scripts/deploy-and-seed.mjs",
+    "seed": "node scripts/deploy-and-seed.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.1.9",

@@ -1,6 +1,6 @@
 // Auto-generated deployment configuration
-export const PAYPROOF_ADDRESS = "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0";
-export const ARBITRATOR_ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+export const PAYPROOF_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+export const ARBITRATOR_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 export const CHAIN_ID = 31337;
 export const RPC_URL = "http://127.0.0.1:8545";
 export const PAYPROOF_ABI = [

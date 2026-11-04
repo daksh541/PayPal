@@ -22,24 +22,25 @@ PayProof leverages Ethereum smart contracts to implement a transparent, verifiab
 ## 2. Key Features
 
 ### 🛡️ Smart Contract Capabilities (`PayProof.sol`)
-- **Simulated Payment Logging:** Stores `paymentId`, `customer`, `merchant`, `amount`, `timestamp`, and `status`.
-- **Dispute Escalation:** Customer can open a dispute with a documented reason and IPFS evidence hash.
-- **Evidence Management:** Customers can submit or update evidence during an active dispute.
-- **Merchant Counter-Response:** Only the designated merchant can respond with fulfillment statements or tracking proof.
-- **Arbitration Engine:** Strict access control ensuring only the authorized arbitrator can execute `approveRefund` or `rejectRefund`.
-- **State Transition Guardrails:** Four distinct states (`PaymentRecorded`, `Disputed`, `Refunded`, `RefundRejected`) with protections against duplicate disputes and unauthorized mutations.
-- **Comprehensive View Functions:** Single-query batch retrieval (`getAllPayments()`) for gas-efficient, fast frontend indexing.
+1. **Simulated Payment Logging:** Stores `paymentId`, `customer`, `merchant`, `amount`, `timestamp`, and `status`.
+2. **Dispute Escalation:** Customer can open a dispute with a documented reason and IPFS evidence hash.
+3. **Evidence Management:** Customers can submit or update evidence during an active dispute.
+4. **Merchant Counter-Response:** Only the designated merchant can respond with fulfillment statements or tracking proof.
+5. **Arbitration Engine:** Strict access control ensuring only the authorized arbitrator can execute `approveRefund` or `rejectRefund`.
+6. **State Transition Guardrails:** Four distinct states (`PaymentRecorded`, `Disputed`, `Refunded`, `RefundRejected`) with protections against duplicate disputes and unauthorized mutations.
+7. **Comprehensive View Functions:** Single-query batch retrieval (`getAllPayments()`) for gas-efficient, fast frontend indexing.
 
-### 💻 Modern Fintech Banking Interface
-- **Dark Navy Theme:** Professional banking design with `#070d18` / `#111c35` palette, blue accents, glowing badges, and responsive layouts.
+### 💻 High-End Fintech Web Interface
+- **Dark Void Theme:** Pitch-black background (`#000000`) with an ambient radial blue bottom glow and razor-sharp borders.
+- **Top-to-Bottom Structured Layout:** Single cohesive scroll flow (Protocol Overview → Operations & Active Disputes → Transaction Ledger → Contract & Network Specs → Demo Role Cards).
 - **MetaMask Integration via Viem:** 
   - Dynamic wallet connection & account change listener.
-  - Automatic detection of wrong networks with a 1-click button to add/switch to Hardhat Local (Chain `31337`).
+  - Automatic detection of wrong networks with a 1-click button to switch to Hardhat Local (Chain `31337`).
   - Frontend-level disconnection option.
   - Role detection (`Arbitrator`, `Customer`, `Merchant`, `User`) based on active connected address.
 - **Interactive Dispute Center:** Live dispute cards displaying customer/merchant addresses, reasons, evidence hashes, and role-specific action buttons.
-- **On-Chain Audit Trail:** Searchable and filterable transaction log reflecting real contract state.
-- **Live Feedback & Toasts:** Transaction pending spinners, toast alerts, and human-readable revert error explanations.
+- **On-Chain Audit Trail:** Searchable and filterable transaction log (`All`, `Recorded`, `Disputed`, `Refunded`, `Rejected`).
+- **Live Feedback & Toasts:** Transaction pending indicators, toast alerts, and human-readable revert error explanations.
 
 ---
 
@@ -49,198 +50,158 @@ PayProof leverages Ethereum smart contracts to implement a transparent, verifiab
 - **Blockchain Library:** [Viem](https://viem.sh/) (Public & Wallet Clients)
 - **Smart Contracts:** Solidity `^0.8.28` (EVM target: `osaka`)
 - **Development Environment:** Hardhat 3 (`^3.21.2`)
-- **Testing Framework:** Node.js native test runner (`node:test`) + Viem assertions
+- **Testing Framework:** Viem E2E test runner (`node scripts/test-e2e.mjs`)
 - **Wallet:** MetaMask browser extension
-- **Styling:** Custom CSS with CSS variables and responsive design
+- **Styling:** Custom CSS with CSS variables, responsive design, and Google Plus Jakarta Sans typography
 
 ---
 
-## 4. Project Structure
+## 4. Quick Start Commands (Exact Commands)
 
-```
-PayProof/
-├── package.json                    # Root shortcuts for blockchain & frontend
-├── README.md                       # Comprehensive project documentation
-├── blockchain/                     # Smart contract workspace
-│   ├── contracts/
-│   │   └── PayProof.sol            # Main smart contract
-│   ├── scripts/
-│   │   ├── deploy.ts               # Deployment & frontend config exporter
-│   │   └── seed.ts                 # Demo seed script for live testing
-│   ├── test/
-│   │   └── PayProof.test.ts        # 23 automated test cases
-│   ├── hardhat.config.ts           # Hardhat 3 configuration (Viem, networks)
-│   └── package.json
-└── frontend/                       # React + Vite application
-    ├── src/
-    │   ├── contracts/
-    │   │   ├── PayProofConfig.js   # Auto-generated contract ABI & address
-    │   │   └── PayProofConfig.json
-    │   ├── services/
-    │   │   └── blockchain.js       # Viem public/wallet clients & contract calls
-    │   ├── components/
-    │   │   └── Icons.jsx           # Handcrafted SVG fintech icons
-    │   ├── App.jsx                 # Redesigned banking dashboard & modals
-    │   ├── App.css                 # Dark navy theme stylesheet
-    │   └── main.jsx
-    ├── package.json
-    └── vite.config.js
-```
+To run the entire system locally:
 
----
-
-## 5. Prerequisites & Installation
-
-### Requirements
-- **Node.js:** v18.0.0 or later (v20+ recommended)
-- **npm:** v9.0.0 or later
-- **MetaMask Browser Extension** installed in Chrome, Brave, or Firefox.
-
-### Step 1: Install Dependencies
-
-From the project root:
-
+### Terminal 1: Start the Hardhat Local Blockchain
 ```bash
-# Install blockchain dependencies
 cd blockchain
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Return to root
-cd ..
+npm run node
 ```
+> *Hardhat starts a local JSON-RPC node listening at `http://127.0.0.1:8545` (Chain ID `31337`), providing 20 pre-funded test accounts (10,000 ETH each).*
+
+### Terminal 2: Deploy Contract & Seed Initial Demo Data
+```bash
+cd blockchain
+npm run deploy
+```
+> *This deploys `PayProof.sol` to the running node, seeds 4 demo payments (1 Recorded, 1 Disputed, 1 Refunded, 1 Rejected), and automatically updates the frontend config at `frontend/src/contracts/PayProofConfig.js`.*
+
+### Terminal 3: Start the React Frontend
+```bash
+cd frontend
+npm run dev
+```
+> *Open your browser at **`http://localhost:5173`**.*
 
 ---
 
-## 6. How to Run the Project
+## 5. Automated End-to-End Testing
 
-### Step 1: Start the Local Hardhat Blockchain
-
-Open a new terminal window:
+You can run an automated end-to-end test script that executes the complete lifecycle on-chain:
 
 ```bash
-npm run blockchain:node
+# From project root:
+npm run test:e2e
+
+# Or from blockchain directory:
+cd blockchain
+node scripts/test-e2e.mjs
 ```
 
-> Hardhat starts a local JSON-RPC node listening at `http://127.0.0.1:8545` with Chain ID `31337`, providing 20 pre-funded test accounts (10,000 ETH each).
+### What the E2E script verifies:
+1. Customer creates Payment A (₹3,500) → status `PaymentRecorded (0)`.
+2. Customer raises dispute on Payment A with reason and IPFS hash → status `Disputed (1)`.
+3. Customer submits updated evidence hash on Payment A.
+4. Merchant submits counter-statement on Payment A.
+5. Arbitrator approves refund on Payment A → status `Refunded (2)`.
+6. Customer creates Payment B (₹6,200).
+7. Customer raises dispute on Payment B.
+8. Merchant submits counter-statement on Payment B.
+9. Arbitrator rejects refund on Payment B → status `RefundRejected (3)`.
+10. Verifies access controls:
+    - Customer cannot approve refunds (reverts).
+    - Merchant cannot raise customer disputes (reverts).
+    - Customer cannot submit merchant responses (reverts).
+11. Verifies batch retrieval (`getAllPayments()`) returns all records.
 
 ---
 
-### Step 2: Deploy the Smart Contract & Seed Demo Data
+## 6. MetaMask Configuration & Role Setup
 
-In a second terminal:
+### Step 1: Add the Hardhat Local Network to MetaMask
+Click **"Connect Wallet"** on the PayProof webpage. MetaMask will prompt you to automatically add/switch to **Hardhat Local**.
 
-```bash
-npm run blockchain:deploy
-```
+If adding manually in MetaMask:
+- **Network Name:** Hardhat Local
+- **RPC URL:** `http://127.0.0.1:8545`
+- **Chain ID:** `31337`
+- **Currency Symbol:** `ETH`
 
-To automatically populate the contract with sample settled payments and open disputes for instant demonstration, run:
+### Step 2: Import Demo Accounts into MetaMask
 
-```bash
-npm run blockchain:seed
-```
+> ⚠️ **Security Notice:** The private keys below are publicly known Hardhat test keys. Use them **only** on your local test network. Never send real funds to these addresses.
 
-> **Automatic Frontend Sync:** The deployment and seed scripts automatically save the deployed contract address and ABI directly to `frontend/src/contracts/PayProofConfig.js`.
+In MetaMask, click your account avatar → **Add account or hardware wallet** → **Import account** → paste the private key:
 
----
-
-### Step 3: Start the React Frontend
-
-In the same second terminal:
-
-```bash
-npm run frontend:dev
-```
-
-Open your browser and navigate to:
-```
-http://localhost:5173
-```
+| Role | Account Name | Address | Private Key | Responsibilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Arbitrator** | Account #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80` | Approves or rejects disputed refunds on-chain |
+| **Customer** | Account #1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` | Creates payments, raises disputes, updates IPFS evidence |
+| **Merchant** | Account #2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a` | Receives payments, submits counter-statements |
 
 ---
 
-## 7. How to Configure MetaMask
+## 7. Step-by-Step Viva & University Demonstration Script
 
-To interact with the local blockchain using MetaMask:
+Follow these steps for a complete 5-minute live demonstration:
 
-1. Open the MetaMask extension.
-2. If PayProof detects you are on another network (e.g. Ethereum Mainnet or Sepolia), click the **"Switch to Hardhat Local"** button in the red banner. MetaMask will prompt you to approve adding the network.
-3. Alternatively, manually add the network in MetaMask:
-   - **Network Name:** Hardhat Local
-   - **New RPC URL:** `http://127.0.0.1:8545`
-   - **Chain ID:** `31337`
-   - **Currency Symbol:** `ETH`
+### Step 1: Protocol Overview & System Health
+1. Open `http://localhost:5173`.
+2. Point out the top **Protocol Overview** section showing:
+   - Total Payments count and simulated volume.
+   - Active Disputes count.
+   - Approved Refunds count.
+   - Rejected Refunds count.
+3. Show the **Contract & Network** cards showing the verified contract address, deployer arbitrator address, and Chain `31337`.
 
-### Importing Demo Accounts into MetaMask
+### Step 2: Customer Creates a Payment
+1. In MetaMask, select **Account #1 (Customer)**.
+2. In the navbar, the role chip displays **CUSTOMER**.
+3. Under **Operations → Simulate Payment**:
+   - Click the **"Sample Merchant"** button to auto-fill Merchant Account #2 (`0x3C44...`).
+   - Click the **"₹1,500"** preset chip.
+   - Enter an optional note: *"Hardware Sensor Kit"*.
+   - Click **Record Payment**.
+4. Confirm the transaction in MetaMask.
+5. A toast appears confirming transaction inclusion, and the new payment appears in the **Transaction Ledger** with status `Payment Recorded`.
 
-Import any of the default Hardhat private keys into MetaMask for role-based testing:
+### Step 3: Customer Raises a Dispute with Cryptographic Evidence
+1. In the **Transaction Ledger**, find the newly created payment.
+2. Click the **Dispute** button.
+3. In the modal:
+   - Enter Dispute Reason: *"Item received defective and missing sensors"*.
+   - Click the preset **"Defect Photo"** button (auto-fills sample IPFS CID).
+   - Click **Confirm & Sign**.
+4. Sign the transaction in MetaMask.
+5. The payment status changes to `Disputed` (amber badge) and immediately moves into the **Active Disputes** feed.
 
-| Role | Account | Address | Private Key |
-| :--- | :--- | :--- | :--- |
-| **Arbitrator** | Account #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80` |
-| **Customer** | Account #1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` |
-| **Merchant** | Account #2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a` |
+### Step 4: Merchant Submits a Counter-Statement
+1. In MetaMask, switch to **Account #2 (Merchant)**.
+2. The navbar role chip immediately updates to **MERCHANT**.
+3. Under **Active Disputes**, the **Submit Response** button is now enabled (only the merchant can respond).
+4. Click **Submit Response**:
+   - Enter: *"Dispatch video confirmed sealed package delivered via Courier ID #FEDEX-9921"*.
+   - Click **Confirm & Sign**.
+5. Sign in MetaMask. The merchant statement is now immutably attached to the dispute record on-chain.
 
----
-
-## 8. How to Demonstrate the Project (Step-by-Step)
-
-Here is a 5-minute demonstration script for project reviews:
-
-1. **Connect as Customer (Account #1):**
-   - Click **Connect MetaMask** and switch to Account #1.
-   - The top bar will display the green **Customer** role badge.
-   - Navigate to **Create Payment**, enter Merchant Address (`0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`), select ₹3,000, and click **Create Blockchain Payment Record**.
-   - Approve the transaction in MetaMask.
-   - The transaction will appear in the **Transaction History** table with status `Payment Recorded`.
-
-2. **Customer Raises a Dispute:**
-   - In **Disputes** or **Transactions**, locate the new payment.
-   - Click **Raise Dispute**.
-   - Enter a reason (*"Item received was defective and non-functional"*) and an IPFS evidence hash (`ipfs://QmProofReceipt99182`).
-   - Sign the transaction. The payment status transitions to `Disputed`.
-
-3. **Switch to Merchant (Account #2):**
-   - In MetaMask, switch to Account #2.
-   - The app immediately detects the account change and updates the role badge to **Merchant**.
-   - Under **Disputes**, the **Submit Response** action is now enabled for Payment #1.
-   - Submit a counter-statement (*"Replacement was dispatched via DHL Express AWB#9921"*).
-   - Sign the transaction.
-
-4. **Switch to Arbitrator (Account #0):**
-   - In MetaMask, switch to Account #0.
-   - The app updates the role badge to **Arbitrator**.
-   - Click **Arbitrate Ruling** on the disputed card.
-   - Select **Approve Refund** (or **Reject Refund**) and confirm.
-   - The status transitions to `Refund Approved` (or `Refund Rejected`), permanently locking the dispute on-chain.
+### Step 5: Arbitrator Reviews and Issues Ruling
+1. In MetaMask, switch to **Account #0 (Arbitrator)**.
+2. The navbar role chip updates to **ARBITRATOR** (purple badge).
+3. Under **Active Disputes**, click **Arbitrate**.
+4. In the decision modal:
+   - Select **Approve Refund** (Customer wins) or **Reject Refund** (Merchant wins).
+   - Click **Confirm & Sign**.
+5. Sign in MetaMask.
+6. The dispute is permanently resolved on-chain with state `Refund Approved` or `Refund Rejected`, locking the record against any further changes.
 
 ---
 
-## 9. Automated Testing
+## 8. Troubleshooting MetaMask
 
-The smart contract includes a test suite covering all core business logic, access controls, and state invariants:
+### Nonce Desynchronization (If Hardhat Node is Restarted)
+When you restart `npm run node`, the local blockchain's transaction count resets to block 0, but MetaMask remembers prior transaction nonces.
+- **Symptom:** MetaMask displays `Transaction failed: nonce too high` or `replacement transaction underpriced`.
+- **Fix:** In MetaMask → click the 3 vertical dots (menu) → **Settings** → **Advanced** → **Clear activity tab data** (or "Reset Account"). This clears cached nonces without deleting your accounts or keys.
 
-```bash
-npm run blockchain:test
-```
-
-### Test Coverage Highlights (23 Tests Passing):
-- **Deployment & Roles:** Deployer is correctly assigned as immutable/transferable arbitrator.
-- **Payment Creation:** Validates customer != merchant, merchant != 0x0, amount > 0, sequential ID assignment.
-- **Dispute Access Control:** Prevents non-customers from disputing; prevents empty reasons; enforces valid payment IDs.
-- **Duplicate Prevention:** Reverts if customer tries to dispute an already disputed or resolved payment.
-- **Merchant Statements:** Ensures only the designated merchant of that specific payment can respond, and only when disputed.
-- **Arbitrator Resolutions:** Reverts non-arbitrator resolution attempts; validates state transitions; prevents re-resolving finalized disputes.
-- **Role Delegation:** Verifies arbitrator role transfer functionality.
-
----
-
-## 10. Limitations of the Prototype
-
-- **Simulated Funds:** Transactions record simulated fiat amounts rather than locking real ERC-20 tokens or ETH in escrow.
-- **Off-Chain Evidence Storage:** Evidence is referenced via cryptographic hashes or IPFS URIs rather than hosting raw image/PDF bytes directly on-chain (best practice for gas optimization).
-- **Single Arbitrator Model:** Uses a designated arbitrator address. A production iteration could replace this with a decentralized DAO voting mechanism or a multi-signature arbitration panel (e.g. Kleros integration).
-
+### "Unable to connect to Hardhat Local"
+- Ensure `npm run node` is currently running in your blockchain terminal.
+- Ensure the RPC URL is `http://127.0.0.1:8545` and Chain ID is `31337`.
+- If using Brave or Chrome with ad-blockers, ensure local loopback connections are allowed.
