@@ -241,6 +241,17 @@ export function parseErrorMessage(error) {
   return "Transaction failed. Please check inputs and network.";
 }
 
+async function getAccountNonce(publicClient, account) {
+  try {
+    return await publicClient.getTransactionCount({
+      address: account,
+      blockTag: "pending",
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Create Payment on blockchain
  */
@@ -248,15 +259,18 @@ export async function createPaymentTx(account, merchantAddress, amount) {
   await ensureCorrectNetwork();
   const walletClient = getWalletClient();
   const publicClient = getPublicClient();
+  const nonce = await getAccountNonce(publicClient, account);
 
-  const hash = await walletClient.writeContract({
+  const txParams = {
     address: PAYPROOF_ADDRESS,
     abi: PAYPROOF_ABI,
     functionName: "createPayment",
     args: [merchantAddress, BigInt(amount)],
     account,
-  });
+  };
+  if (nonce !== undefined) txParams.nonce = Number(nonce);
 
+  const hash = await walletClient.writeContract(txParams);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { hash, receipt };
 }
@@ -268,15 +282,18 @@ export async function raiseDisputeTx(account, paymentId, reason, evidenceHash) {
   await ensureCorrectNetwork();
   const walletClient = getWalletClient();
   const publicClient = getPublicClient();
+  const nonce = await getAccountNonce(publicClient, account);
 
-  const hash = await walletClient.writeContract({
+  const txParams = {
     address: PAYPROOF_ADDRESS,
     abi: PAYPROOF_ABI,
     functionName: "raiseDispute",
     args: [BigInt(paymentId), reason, evidenceHash || ""],
     account,
-  });
+  };
+  if (nonce !== undefined) txParams.nonce = Number(nonce);
 
+  const hash = await walletClient.writeContract(txParams);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { hash, receipt };
 }
@@ -288,15 +305,18 @@ export async function submitEvidenceTx(account, paymentId, evidenceHash) {
   await ensureCorrectNetwork();
   const walletClient = getWalletClient();
   const publicClient = getPublicClient();
+  const nonce = await getAccountNonce(publicClient, account);
 
-  const hash = await walletClient.writeContract({
+  const txParams = {
     address: PAYPROOF_ADDRESS,
     abi: PAYPROOF_ABI,
     functionName: "submitEvidence",
     args: [BigInt(paymentId), evidenceHash],
     account,
-  });
+  };
+  if (nonce !== undefined) txParams.nonce = Number(nonce);
 
+  const hash = await walletClient.writeContract(txParams);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { hash, receipt };
 }
@@ -308,15 +328,18 @@ export async function merchantRespondTx(account, paymentId, responseText) {
   await ensureCorrectNetwork();
   const walletClient = getWalletClient();
   const publicClient = getPublicClient();
+  const nonce = await getAccountNonce(publicClient, account);
 
-  const hash = await walletClient.writeContract({
+  const txParams = {
     address: PAYPROOF_ADDRESS,
     abi: PAYPROOF_ABI,
     functionName: "merchantRespond",
     args: [BigInt(paymentId), responseText],
     account,
-  });
+  };
+  if (nonce !== undefined) txParams.nonce = Number(nonce);
 
+  const hash = await walletClient.writeContract(txParams);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { hash, receipt };
 }
@@ -328,15 +351,18 @@ export async function resolveDisputeTx(account, paymentId, approve) {
   await ensureCorrectNetwork();
   const walletClient = getWalletClient();
   const publicClient = getPublicClient();
+  const nonce = await getAccountNonce(publicClient, account);
 
-  const hash = await walletClient.writeContract({
+  const txParams = {
     address: PAYPROOF_ADDRESS,
     abi: PAYPROOF_ABI,
     functionName: "resolveDispute",
     args: [BigInt(paymentId), Boolean(approve)],
     account,
-  });
+  };
+  if (nonce !== undefined) txParams.nonce = Number(nonce);
 
+  const hash = await walletClient.writeContract(txParams);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { hash, receipt };
 }
